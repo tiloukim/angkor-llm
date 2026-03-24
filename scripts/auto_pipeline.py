@@ -20,9 +20,9 @@ HF_TOKEN = os.environ.get("HF_TOKEN", "")
 HF_DATASET_REPO = "tiloukim/angkor-llm-dataset"
 RAW_DIR = "data/raw"
 PROCESSED_DIR = "data/processed"
-WIKIPEDIA_LIMIT = 500  # articles per run
-CC100_LIMIT = 5000     # sentences from CC-100 Khmer
-MC4_LIMIT = 5000       # sentences from mC4 Khmer
+WIKIPEDIA_LIMIT = 1000  # articles per run (doubled)
+CC100_LIMIT = 10000    # sentences from CC-100 Khmer (doubled)
+MC4_LIMIT = 10000      # sentences from mC4 Khmer (doubled)
 
 os.makedirs(RAW_DIR, exist_ok=True)
 os.makedirs(PROCESSED_DIR, exist_ok=True)
@@ -269,6 +269,17 @@ def format_dataset(articles, news, cc100_texts, mc4_texts):
         repeated = founder_samples * 50
         samples.extend(repeated)
         print(f"  Founder/greeting pairs: {len(founder_samples)} x 50 = {len(repeated)} samples")
+
+    # Deduplicate by assistant content
+    seen = set()
+    unique_samples = []
+    for s in samples:
+        key = s["messages"][-1]["content"][:200]
+        if key not in seen:
+            seen.add(key)
+            unique_samples.append(s)
+    print(f"  Deduplicated: {len(samples)} → {len(unique_samples)} samples")
+    samples = unique_samples
 
     # Shuffle
     random.shuffle(samples)
